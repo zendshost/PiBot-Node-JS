@@ -1,6 +1,3 @@
-
-
-````markdown
 # 🤖 PiBot Node JS | Pi Multi-Wallet Sweeper
 
 
@@ -159,4 +156,3 @@ Punya pertanyaan, ide fitur, atau menemukan bug? Jangan ragu untuk menghubungi s
 ---
 
 Dibuat dengan ❤️ dan secangkir kopi. Jika Anda merasa proyek ini bermanfaat, pertimbangkan untuk memberikan bintang ⭐ pada repositori ini!
-````
