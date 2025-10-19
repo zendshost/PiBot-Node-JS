@@ -51,7 +51,7 @@ async function sendPi() {
     if (!server) {
         console.error('❌ Semua node Pi tidak dapat dijangkau. Mencoba lagi sebentar...');
         console.log(`-------------------------------------------------------------------------------------`);
-        setTimeout(sendPi, 1000); // Jika semua gagal, tunggu 5 detik sebelum mencoba lagi
+        setTimeout(sendPi, 1000); // Jika semua gagal, tunggu 1 detik sebelum mencoba lagi
         return;
     }
 
