@@ -25,7 +25,7 @@ async function getPiWalletAddressFromSeed(mnemonic) {
     return { publicKey, secretKey };
 }
 
-// <<< PERUBAHAN 2: Fungsi baru untuk mencari server yang aktif
+// Fungsi baru untuk mencari server yang aktif
 async function findWorkingServer() {
     for (const nodeUrl of PI_NODES) {
         try {
