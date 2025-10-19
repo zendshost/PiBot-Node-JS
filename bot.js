@@ -119,4 +119,4 @@ sendPi(); // Mulai loop
 
 // Free Source Code
 // PI auto Transfer bot
-// telegram: @zendshostkenapa
+// telegram: @zendshost
