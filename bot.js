@@ -25,7 +25,7 @@ async function getPiWalletAddressFromSeed(mnemonic) {
     return { publicKey, secretKey };
 }
 
-// Fungsi baru untuk mencari server yang aktif
+// <<< PERUBAHAN 2: Fungsi baru untuk mencari server yang aktif
 async function findWorkingServer() {
     for (const nodeUrl of PI_NODES) {
         try {
@@ -51,7 +51,7 @@ async function sendPi() {
     if (!server) {
         console.error('❌ Semua node Pi tidak dapat dijangkau. Mencoba lagi sebentar...');
         console.log(`-------------------------------------------------------------------------------------`);
-        setTimeout(sendPi, 1000); // Jika semua gagal, tunggu 1 detik sebelum mencoba lagi
+        setTimeout(sendPi, 5000); // Jika semua gagal, tunggu 5 detik sebelum mencoba lagi
         return;
     }
 
@@ -119,4 +119,4 @@ sendPi(); // Mulai loop
 
 // Free Source Code
 // PI auto Transfer bot
-// telegram: @zendshost
+// telegram: @zendshostkenapa
