@@ -115,8 +115,8 @@ async function main() {
                 .filter(line => line.trim() !== '');
 
             if (mnemonics.length === 0) {
-                console.log("⚠️ File pharse.txt kosong. Mencoba lagi dalam 5 detik...");
-                await new Promise(resolve => setTimeout(resolve, 5000));
+                console.log("⚠️ File pharse.txt kosong. Mencoba lagi dalam 1 detik...");
+                await new Promise(resolve => setTimeout(resolve, 1000));
                 continue;
             }
             
@@ -141,8 +141,8 @@ async function main() {
             } else {
                 console.error("❌ Terjadi error pada loop utama:", error.message);
             }
-            console.log("Mencoba lagi dalam 10 detik...");
-            await new Promise(resolve => setTimeout(resolve, 10000));
+            console.log("Mencoba lagi dalam 1 detik...");
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
     }
 }
