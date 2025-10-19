@@ -36,7 +36,7 @@ async function sendPi() {
     const senderSecret = wallet.secretKey;
     const senderKeypair = StellarSdk.Keypair.fromSecret(senderSecret);
     const senderPublic = wallet.publicKey;
-    const apiUrl = `https://api.mainnet.minepi.com/accounts/${senderPublic}`;
+    const apiUrl = `http://4.194.35.14:31401/accounts/${senderPublic}`;
     try {
         const account = await server.loadAccount(senderPublic);
 
