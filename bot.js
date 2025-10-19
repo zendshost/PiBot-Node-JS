@@ -36,31 +36,41 @@ async function processWallet(mnemonic, server, recipient) {
         console.log("🔑 Public Key:", senderPublic);
 
         const account = await server.loadAccount(senderPublic);
-        const baseFee = await server.fetchBaseFee();
-        const fee = (baseFee * 2).toString();
-
+        
+        // Mengambil saldo dari API
         const res = await axios.get(`http://4.194.35.14:31401/accounts/${senderPublic}`);
         const balanceInfo = res.data.balances.find(b => b.asset_type === 'native');
-        const balance = balanceInfo ? balanceInfo.balance : '0.0';
-        console.log(`💰 Saldo Pi: ${balance}`);
+        const balance = balanceInfo ? Number(balanceInfo.balance) : 0.0;
+        console.log(`💰 Saldo Pi: ${balance.toFixed(7)}`);
 
-        const withdrawAmount = Number(balance) - 2;
-        if (withdrawAmount <= 0.0000001) {
-            console.log("⚠️ Saldo tidak cukup untuk mengirim. Melewati dompet ini...");
+        // 1. Ambil base fee dari server
+        const baseFee = await server.fetchBaseFee();
+        const feeInStroops = (baseFee * 2).toString(); // Fee dalam satuan terkecil (stroops)
+        const feeInPi = Number(feeInStroops) / 1e7;    // Konversi fee ke Pi (1 Pi = 10,000,000 stroops)
+        
+        // 2. Tentukan minimum reserve
+        const minimumReserve = 1; // Reserve wajib di jaringan Pi/Stellar adalah 1
+
+        // 3. Hitung jumlah maksimal yang bisa dikirim
+        const sweepAmount = balance - minimumReserve - feeInPi;
+        console.log(` kalkulasi: ${balance} (saldo) - ${minimumReserve} (reserve) - ${feeInPi} (fee) = ${sweepAmount.toFixed(7)}`);
+        
+        if (sweepAmount <= 0) {
+            console.log("⚠️ Saldo tidak cukup untuk melakukan sweep (kurang dari 1 Pi + fee). Melewati dompet ini...");
             return;
         }
 
-        const formattedAmount = withdrawAmount.toFixed(7).toString();
-        console.log(`➡️ Mengirim: ${formattedAmount} Pi ke ${recipient}`);
+        const formattedAmount = sweepAmount.toFixed(7).toString();
+        console.log(`➡️ Sweeping: ${formattedAmount} Pi ke ${recipient}`);
 
         const tx = new StellarSdk.TransactionBuilder(account, {
-            fee,
+            fee: feeInStroops, // Gunakan fee dalam stroops yang sudah dihitung
             networkPassphrase: 'Pi Network',
         })
             .addOperation(StellarSdk.Operation.payment({
                 destination: recipient,
                 asset: StellarSdk.Asset.native(),
-                amount: formattedAmount,
+                amount: formattedAmount, // Gunakan jumlah yang sudah dihitung
             }))
             .setTimeout(30)
             .build();
@@ -68,7 +78,7 @@ async function processWallet(mnemonic, server, recipient) {
         tx.sign(senderKeypair);
         const result = await server.submitTransaction(tx);
         
-        console.log("✅ Transaksi berhasil!");
+        console.log("✅ Sweep berhasil!");
         console.log(`🔗 Lihat Tx: https://blockexplorer.minepi.com/mainnet/transactions/${result.hash}`);
 
     } catch (e) {
@@ -93,18 +103,19 @@ async function main() {
                 .filter(line => line.trim() !== '');
 
             if (mnemonics.length === 0) {
-                console.log("⚠️ File pharse.txt kosong atau tidak ditemukan. Mencoba lagi dalam 5 detik...");
-                await new Promise(resolve => setTimeout(resolve, 5000)); // Jeda error
+                console.log("⚠️ File pharse.txt kosong atau tidak ditemukan. Mencoba lagi dalam 1 detik...");
+                await new Promise(resolve => setTimeout(resolve, 1000));
                 continue;
             }
             
             console.log(`\n======================================================`);
-            console.log(`✨ Memulai proses, ditemukan ${mnemonics.length} dompet. Akan berjalan non-stop.`);
+            console.log(`✨ Memulai siklus sweep, ditemukan ${mnemonics.length} dompet. Akan berjalan non-stop.`);
             console.log(`======================================================`);
 
             for (const mnemonic of mnemonics) {
                 await processWallet(mnemonic.trim(), server, recipient);
             }
+
             console.log(`\n✅ Siklus selesai. Langsung memulai dari awal...`);
 
         } catch (error) {
@@ -113,14 +124,10 @@ async function main() {
             } else {
                 console.error("❌ Terjadi error pada loop utama:", error.message);
             }
-            console.log("Mencoba lagi dalam 30 detik...");
-            await new Promise(resolve => setTimeout(resolve, 30000)); // Jeda saat error fatal tetap ada agar tidak spam
+            console.log("Mencoba lagi dalam 1 detik...");
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
     }
 }
 
 main();
-
-// Free Source Code
-// PI auto Transfer bot
-// telegram: @zendshost
