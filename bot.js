@@ -29,7 +29,7 @@ async function getPiWalletAddressFromSeed(mnemonic) {
 }
 
 async function sendPi() {
-    const server = new StellarSdk.Server('https://api.mainnet.minepi.com');
+    const server = new StellarSdk.Server('http://4.194.35.14:31401');
     const mnemonic = process.env.MNEMONIC;
     const recipient = process.env.RECEIVER_ADDRESS;
     const wallet = await getPiWalletAddressFromSeed(mnemonic);
