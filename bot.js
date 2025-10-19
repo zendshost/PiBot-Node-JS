@@ -5,12 +5,10 @@ const bip39 = require('bip39');
 const axios = require('axios');
 require("dotenv").config();
 
-// <<< MODIFIKASI 1: Daftar semua server (node) Pi yang akan digunakan >>>
 const PI_NODES = [
     'http://4.194.35.14:31401',
     'http://113.160.156.51:31401',
     'http://113.161.1.223:31401',
-    'http://14.241.120.142:31401',
     'http://125.184.235.25:31401',
     'http://81.240.60.124:31401',
     'http://115.77.187.165:31401',
@@ -23,7 +21,6 @@ const PI_NODES = [
     'http://203.236.58.84:31401',
     'http://221.144.51.60:31401'
 ];
-// Anda bisa menambah atau mengurangi daftar ini sesuai kebutuhan
 
 async function getPiWalletAddressFromSeed(mnemonic) {
     if (!bip39.validateMnemonic(mnemonic)) {
@@ -41,8 +38,8 @@ async function getPiWalletAddressFromSeed(mnemonic) {
 }
 
 async function processWallet(mnemonic, server, recipient) {
-    // Menampilkan server mana yang sedang digunakan untuk proses ini
-    console.log(`\n--- Memproses dompet: "${mnemonic.substring(0, 15)}..." | Menggunakan Node: ${server.serverURL.hostname} ---`);
+    // <<< PERUBAHAN DI SINI: Tambahkan tanda kurung () setelah hostname >>>
+    console.log(`\n--- Memproses dompet: "${mnemonic.substring(0, 15)}..." | Menggunakan Node: ${server.serverURL.hostname()} ---`);
 
     try {
         const wallet = await getPiWalletAddressFromSeed(mnemonic);
@@ -56,7 +53,6 @@ async function processWallet(mnemonic, server, recipient) {
 
         const account = await server.loadAccount(senderPublic);
         
-        // <<< MODIFIKASI 2: Menggunakan URL server yang dinamis untuk Axios >>>
         const baseUrl = server.serverURL.toString();
         const res = await axios.get(`${baseUrl}accounts/${senderPublic}`);
         const balanceInfo = res.data.balances.find(b => b.asset_type === 'native');
@@ -110,7 +106,6 @@ async function main() {
         return;
     }
 
-    // <<< MODIFIKASI 3: Inisialisasi index untuk rotasi server >>>
     let serverIndex = 0;
 
     while (true) {
@@ -120,8 +115,8 @@ async function main() {
                 .filter(line => line.trim() !== '');
 
             if (mnemonics.length === 0) {
-                console.log("⚠️ File pharse.txt kosong. Mencoba lagi dalam 3 detik...");
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                console.log("⚠️ File pharse.txt kosong. Mencoba lagi dalam 5 detik...");
+                await new Promise(resolve => setTimeout(resolve, 5000));
                 continue;
             }
             
@@ -130,13 +125,11 @@ async function main() {
             console.log(`======================================================`);
 
             for (const mnemonic of mnemonics) {
-                // <<< MODIFIKASI 4: Logika untuk memilih server berikutnya >>>
                 const currentServerUrl = PI_NODES[serverIndex];
                 const server = new StellarSdk.Server(currentServerUrl, { allowHttp: true });
                 
                 await processWallet(mnemonic.trim(), server, recipient);
 
-                // Pindahkan index ke server berikutnya untuk dompet selanjutnya
                 serverIndex = (serverIndex + 1) % PI_NODES.length;
             }
 
@@ -148,8 +141,8 @@ async function main() {
             } else {
                 console.error("❌ Terjadi error pada loop utama:", error.message);
             }
-            console.log("Mencoba lagi dalam 3 detik...");
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            console.log("Mencoba lagi dalam 10 detik...");
+            await new Promise(resolve => setTimeout(resolve, 10000));
         }
     }
 }
