@@ -4,50 +4,34 @@ const bip39 = require('bip39');
 const axios = require('axios');
 require("dotenv").config();
 
-const PI_NODES = [
-    'http://4.194.35.14:31401',
-    'http://113.160.156.51:31401',
-];
-
 async function getPiWalletAddressFromSeed(mnemonic) {
+    // Validate seed phrase
     if (!bip39.validateMnemonic(mnemonic)) {
         throw new Error("Invalid mnemonic");
     }
+
+    // Get seed from mnemonic
     const seed = await bip39.mnemonicToSeed(mnemonic);
+
+    // Pi Wallet (like Stellar) uses path m/44'/314159'/0'
     const derivationPath = "m/44'/314159'/0'";
     const { key } = ed25519.derivePath(derivationPath, seed.toString('hex'));
+
+    // Create Stellar keypair from derived private key
     const keypair = StellarSdk.Keypair.fromRawEd25519Seed(key);
+
     const publicKey = keypair.publicKey();
     const secretKey = keypair.secret();
+
     console.log("🚀 Public Key (Sender Pi Wallet Address):", keypair.publicKey());
+
     return { publicKey, secretKey };
 }
 
-async function findWorkingServer() {
-    for (const nodeUrl of PI_NODES) {
-        try {
-            console.log(`📡 Mencoba menghubungkan ke node: ${nodeUrl}`);
-            const server = new StellarSdk.Server(nodeUrl, { allowHttp: true });
-            await server.fetchTimebounds(1); 
-            console.log(`✅ Berhasil terhubung ke ${nodeUrl}`);
-            return server;
-        } catch (error) {
-            console.warn(`⚠️ Gagal terhubung ke ${nodeUrl}. Mencoba node berikutnya...`);
-        }
-    }
-    return null;
-}
-
-
 async function sendPi() {
-    const server = await findWorkingServer();
-
-    if (!server) {
-        console.error('❌ Semua node Pi tidak dapat dijangkau. Mencoba lagi sebentar...');
-        console.log(`-------------------------------------------------------------------------------------`);
-        setTimeout(sendPi, 100);
-        return;
-    }
+    // <<< PERUBAHAN DI SINI
+    // Menambahkan { allowHttp: true } untuk mengizinkan koneksi ke server HTTP
+    const server = new StellarSdk.Server('http://4.194.35.14:31401', { allowHttp: true });
 
     const mnemonic = process.env.MNEMONIC;
     const recipient = process.env.RECEIVER_ADDRESS;
@@ -55,15 +39,12 @@ async function sendPi() {
     const senderSecret = wallet.secretKey;
     const senderKeypair = StellarSdk.Keypair.fromSecret(senderSecret);
     const senderPublic = wallet.publicKey;
-
-    const workingNodeUrl = server.serverURL.href;
-    // <<< PERBAIKAN DI SINI: Tambahkan tanda "/" sebelum "accounts"
-    const apiUrl = `${workingNodeUrl}/accounts/${senderPublic}`;
-
+    const apiUrl = `http://4.194.35.14:31401/accounts/${senderPublic}`;
     try {
         const account = await server.loadAccount(senderPublic);
+
         const baseFee = await server.fetchBaseFee();
-        const fee = (baseFee * 2).toString();
+        const fee = (baseFee * 2).toString(); // Dynamically doubled gas fee
         console.log(`⛽ Base Fee: ${baseFee / 1e7}, Doubled Fee: ${fee / 1e7}`);
 
         const res = await axios.get(apiUrl);
@@ -72,11 +53,11 @@ async function sendPi() {
 
         const withdrawAmount = Number(balance) - 2;
         if (withdrawAmount <= 0) {
-            console.log("⚠️ Saldo tidak cukup untuk mengirim. Melewati...");
+            console.log("⚠️ Not enough Pi to send. Skipping...");
             console.log(`-------------------------------------------------------------------------------------`)
         } else {
             const formattedAmount = withdrawAmount.toFixed(7).toString();
-            console.log(`➡️ Mengirim: ${formattedAmount} Pi`);
+            console.log(`➡️ Sending: ${formattedAmount} Pi`);
 
             const tx = new StellarSdk.TransactionBuilder(account, {
                 fee,
@@ -91,22 +72,28 @@ async function sendPi() {
                 .build();
 
             tx.sign(senderKeypair);
+
             const result = await server.submitTransaction(tx);
 
             if (result && result.transaction_hash !== false) {
-                console.log("✅ Tx Hash:", result.hash);
-                console.log(`🔗 Lihat Tx: https://blockexplorer.minepi.com/mainnet/transactions/${result.hash}`);
+                console.log("✅ Tx Hash:", result);
+                console.log(`🔗 View Tx: https://blockexplorer.minepi.com/mainnet/transactions/${result.hash}`);
+                console.log(`-------------------------------------------------------------------------------------`)
             } else {
-                console.log("⚠️ Transaksi dikirim tetapi tidak terkonfirmasi:", result);
+                console.log("⚠️ Transaction submitted but not confirmed successful:", result);
+                console.log(`-------------------------------------------------------------------------------------`)
             }
-            console.log(`-------------------------------------------------------------------------------------`);
         }
     } catch (e) {
         console.error('❌ Error:', e.response?.data?.extras?.result_codes || e.message || e);
-        console.log(`-------------------------------------------------------------------------------------`);
+        console.log(`-------------------------------------------------------------------------------------`)
     } finally {
-        setTimeout(sendPi, 100);
+        setTimeout(sendPi, 100); // Run again after 100 ms
     }
 }
 
-sendPi();
+sendPi(); // Start the loop
+
+// Free Source Code
+// PI auto Transfer bot
+// telegram: @zendshostkenapa
