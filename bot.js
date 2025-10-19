@@ -4,11 +4,9 @@ const bip39 = require('bip39');
 const axios = require('axios');
 require("dotenv").config();
 
-// <<< PERUBAHAN 1: Buat daftar semua node/server di sini
 const PI_NODES = [
     'http://4.194.35.14:31401',
     'http://113.160.156.51:31401',
-    // Anda bisa menambahkan lebih banyak server di sini di masa depan
 ];
 
 async function getPiWalletAddressFromSeed(mnemonic) {
@@ -25,33 +23,29 @@ async function getPiWalletAddressFromSeed(mnemonic) {
     return { publicKey, secretKey };
 }
 
-// <<< PERUBAHAN 2: Fungsi baru untuk mencari server yang aktif
 async function findWorkingServer() {
     for (const nodeUrl of PI_NODES) {
         try {
             console.log(`📡 Mencoba menghubungkan ke node: ${nodeUrl}`);
             const server = new StellarSdk.Server(nodeUrl, { allowHttp: true });
-            // Lakukan pengecekan sederhana untuk memastikan server merespons
             await server.fetchTimebounds(1); 
             console.log(`✅ Berhasil terhubung ke ${nodeUrl}`);
-            return server; // Kembalikan server yang berfungsi
+            return server;
         } catch (error) {
             console.warn(`⚠️ Gagal terhubung ke ${nodeUrl}. Mencoba node berikutnya...`);
         }
     }
-    // Jika semua server gagal
     return null;
 }
 
 
 async function sendPi() {
-    // <<< PERUBAHAN 3: Gunakan fungsi findWorkingServer untuk mendapatkan server yang aktif
     const server = await findWorkingServer();
 
     if (!server) {
         console.error('❌ Semua node Pi tidak dapat dijangkau. Mencoba lagi sebentar...');
         console.log(`-------------------------------------------------------------------------------------`);
-        setTimeout(sendPi, 5000); // Jika semua gagal, tunggu 5 detik sebelum mencoba lagi
+        setTimeout(sendPi, 100);
         return;
     }
 
@@ -62,9 +56,9 @@ async function sendPi() {
     const senderKeypair = StellarSdk.Keypair.fromSecret(senderSecret);
     const senderPublic = wallet.publicKey;
 
-    // <<< PERUBAHAN 4: Buat URL API dinamis berdasarkan server yang berhasil terhubung
     const workingNodeUrl = server.serverURL.href;
-    const apiUrl = `${workingNodeUrl}accounts/${senderPublic}`;
+    // <<< PERBAIKAN DI SINI: Tambahkan tanda "/" sebelum "accounts"
+    const apiUrl = `${workingNodeUrl}/accounts/${senderPublic}`;
 
     try {
         const account = await server.loadAccount(senderPublic);
@@ -111,12 +105,8 @@ async function sendPi() {
         console.error('❌ Error:', e.response?.data?.extras?.result_codes || e.message || e);
         console.log(`-------------------------------------------------------------------------------------`);
     } finally {
-        setTimeout(sendPi, 100); // Jalankan lagi setelah 100 ms
+        setTimeout(sendPi, 100);
     }
 }
 
-sendPi(); // Mulai loop
-
-// Free Source Code
-// PI auto Transfer bot
-// telegram: @zendshost
+sendPi();
